@@ -17,6 +17,10 @@ It simulates real-world survey analysis workflows used by organizations for deci
 \---
 
 
+## 🌐 Live Demo
+👉 https://your-streamlit-link
+
+
 
 \## 🎯 Problem Statement
 
