@@ -1,4 +1,4 @@
-\# 📊 Poll Results Visualizer
+\# 📊 **Poll Results Visualizer**
 
 
 
@@ -160,14 +160,6 @@ streamlit run app.py
 
 
 
-\### 📊 Analysis Output
-
-
-
-!\[Analysis](images/analysis\_output.png)
-
-
-
 \### 📊 Bar Chart
 
 
@@ -197,15 +189,6 @@ streamlit run app.py
 
 
 !\[Trend](images/trend\_chart.png)
-
-
-
-\### 💻 Dashboard
-
-
-
-!\[Dashboard](images/dashboard.png)
-
 
 
 \---
