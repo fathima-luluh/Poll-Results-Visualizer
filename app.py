@@ -2,112 +2,133 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from wordcloud import WordCloud
 
-st.set_page_config(page_title="Poll Results Visualizer", layout="wide")
+# ----------------------------
+# PAGE CONFIG
+# ----------------------------
+st.set_page_config(
+    page_title="Poll Results Visualizer",
+    page_icon="📊",
+    layout="wide"
+)
 
 st.title("📊 Poll Results Visualizer Dashboard")
 
-# -----------------------------
-# LOAD DATA (same logic as main.py)
-# -----------------------------
-import numpy as np
+# ----------------------------
+# DATA UPLOAD SECTION
+# ----------------------------
+st.sidebar.header("📂 Upload Your Dataset")
 
-np.random.seed(42)
-n = 200
+uploaded_file = st.sidebar.file_uploader("Upload CSV", type=["csv"])
 
-df = pd.DataFrame({
-    "Respondent_ID": range(1, n+1),
-    "Age_Group": np.random.choice(["18-24","25-34","35-44"], n),
-    "Gender": np.random.choice(["Male","Female"], n),
-    "Preferred_Tool": np.random.choice(["Python","R","Excel"], n, p=[0.5,0.2,0.3]),
-    "Satisfaction": np.random.randint(1,6,n),
-    "Region": np.random.choice(["North","South","East","West"], n),
-    "Date": pd.date_range(start="2024-01-01", periods=n, freq="D")
-})
+if uploaded_file is not None:
+    df = pd.read_csv(uploaded_file)
+    st.success("✅ File uploaded successfully!")
+else:
+    st.info("ℹ️ Using default dataset")
 
-# -----------------------------
-# SIDEBAR FILTERS
-# -----------------------------
-st.sidebar.header("🔍 Filters")
+    # fallback synthetic dataset
+    df = pd.DataFrame({
+        "Preferred_Tool": ["Python", "R", "Excel", "Python", "Excel", "R", "Python"],
+        "Satisfaction": [4, 3, 5, 4, 2, 3, 5],
+        "Region": ["North", "South", "East", "West", "North", "East", "South"],
+        "Feedback": [
+            "Great tool", "Needs improvement", "Very useful",
+            "Excellent", "Not bad", "Good experience", "Amazing"
+        ]
+    })
 
-selected_region = st.sidebar.multiselect(
-    "Select Region",
-    options=df["Region"].unique(),
-    default=df["Region"].unique()
-)
+# ----------------------------
+# DATA PREVIEW
+# ----------------------------
+st.subheader("📌 Dataset Preview")
+st.dataframe(df)
 
-selected_tool = st.sidebar.multiselect(
-    "Select Tool",
-    options=df["Preferred_Tool"].unique(),
-    default=df["Preferred_Tool"].unique()
-)
-
-filtered_df = df[
-    (df["Region"].isin(selected_region)) &
-    (df["Preferred_Tool"].isin(selected_tool))
-]
-
-# -----------------------------
-# SHOW DATA
-# -----------------------------
-if st.checkbox("Show Raw Data"):
-    st.dataframe(filtered_df)
-
-# -----------------------------
+# ----------------------------
 # KPI METRICS
-# -----------------------------
-col1, col2 = st.columns(2)
+# ----------------------------
+st.subheader("📊 Key Metrics")
 
-col1.metric("Total Responses", len(filtered_df))
-col2.metric("Avg Satisfaction", round(filtered_df["Satisfaction"].mean(), 2))
+col1, col2, col3 = st.columns(3)
 
-# -----------------------------
-# BAR CHART
-# -----------------------------
+col1.metric("Total Responses", len(df))
+col2.metric("Avg Satisfaction", round(df["Satisfaction"].mean(), 2))
+col3.metric("Top Tool", df["Preferred_Tool"].mode()[0])
+
+# ----------------------------
+# BAR CHART - TOOL PREFERENCE
+# ----------------------------
 st.subheader("📊 Tool Preference")
 
 fig1, ax1 = plt.subplots()
-sns.countplot(x="Preferred_Tool", data=filtered_df, ax=ax1)
+sns.countplot(x="Preferred_Tool", data=df, ax=ax1)
+plt.xticks(rotation=30)
 st.pyplot(fig1)
 
-# -----------------------------
-# PIE CHART
-# -----------------------------
-st.subheader("🥧 Tool Share")
-
-tool_counts = filtered_df["Preferred_Tool"].value_counts()
+# ----------------------------
+# PIE CHART - REGION DISTRIBUTION
+# ----------------------------
+st.subheader("🌍 Region Distribution")
 
 fig2, ax2 = plt.subplots()
-tool_counts.plot.pie(autopct='%1.1f%%', ax=ax2)
+df["Region"].value_counts().plot.pie(autopct="%1.1f%%", ax=ax2)
 ax2.set_ylabel("")
 st.pyplot(fig2)
 
-# -----------------------------
-# REGION-WISE
-# -----------------------------
-st.subheader("🌍 Region vs Tool")
-
-region_tool = pd.crosstab(filtered_df["Region"], filtered_df["Preferred_Tool"])
+# ----------------------------
+# SATISFACTION DISTRIBUTION
+# ----------------------------
+st.subheader("⭐ Satisfaction Distribution")
 
 fig3, ax3 = plt.subplots()
-region_tool.plot(kind="bar", stacked=True, ax=ax3)
+sns.histplot(df["Satisfaction"], bins=5, kde=True, ax=ax3)
 st.pyplot(fig3)
 
-# -----------------------------
-# TREND
-# -----------------------------
-st.subheader("📈 Daily Trend")
+# ----------------------------
+# WORD CLOUD (FEEDBACK)
+# ----------------------------
+st.subheader("💬 Feedback Word Cloud")
 
-daily = filtered_df.groupby("Date").size()
+text = " ".join(df["Feedback"].astype(str))
 
-fig4, ax4 = plt.subplots()
-daily.plot(ax=ax4)
-st.pyplot(fig4)
+if text:
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color="white"
+    ).generate(text)
 
-# -----------------------------
-# INSIGHTS
-# -----------------------------
-st.subheader("💡 Insights")
+    fig4, ax4 = plt.subplots()
+    ax4.imshow(wordcloud, interpolation="bilinear")
+    ax4.axis("off")
+    st.pyplot(fig4)
 
-top_tool = tool_counts.idxmax()
-st.write(f"🏆 Most Preferred Tool: **{top_tool}**")
+# ----------------------------
+# AUTO INSIGHTS
+# ----------------------------
+st.subheader("💡 Auto Insights")
+
+top_tool = df["Preferred_Tool"].value_counts().idxmax()
+avg_sat = df["Satisfaction"].mean()
+top_region = df["Region"].value_counts().idxmax()
+
+st.write(f"""
+- 🏆 Most preferred tool: **{top_tool}**
+- ⭐ Average satisfaction: **{round(avg_sat,2)}**
+- 🌍 Most active region: **{top_region}**
+""")
+
+# ----------------------------
+# DOWNLOAD DATA
+# ----------------------------
+st.sidebar.subheader("⬇ Download Data")
+
+csv = df.to_csv(index=False).encode("utf-8")
+
+st.sidebar.download_button(
+    label="Download CSV",
+    data=csv,
+    file_name="poll_results.csv",
+    mime="text/csv"
+)
